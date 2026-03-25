@@ -1,0 +1,88 @@
+description = "Generate a PDF from a webpage or HTML using Browserless. Supports page formatting, headers/footers, and background graphics."
+
+prompt = """# PDF
+
+Use the Browserless `/pdf` REST API to generate a PDF from a webpage or HTML content.
+
+The user's request is: {{args}}
+
+## Authentication
+
+```bash
+[ -z "$BROWSERLESS_TOKEN" ] && [ -f ~/.browserless/.env ] && source ~/.browserless/.env
+API_URL="${BROWSERLESS_API_URL:-https://production-sfo.browserless.io}"
+```
+
+If no token is available, ask the user to run `/browserless:auth`.
+
+## How to call
+
+```
+POST ${API_URL}/pdf?token=${BROWSERLESS_TOKEN}
+Content-Type: application/json
+```
+
+### Query parameters (appended to URL)
+
+- `blockAds` (boolean): Load ad-blocking extensions.
+- `proxy` (string): **REQUIRED when using any proxy option.** Must be set to `"residential"`. If `proxyCountry` is used, you MUST also include `proxy=residential` — otherwise the proxy settings are silently ignored.
+- `proxyCountry` (string): Two-letter country code. Requires `proxy=residential`.
+
+### Request body
+
+```json
+{
+  "url": "<target URL>",
+  "options": {
+    "printBackground": true,
+    "format": "A4"
+  }
+}
+```
+
+#### Top-level parameters:
+
+- `url` (string): Webpage URL. Use this OR `html`, not both.
+- `html` (string): Inline HTML content to render as PDF.
+- `blockConsentModals` (boolean): Block cookie consent modals.
+- `emulateMediaType` (string): CSS media type (`"screen"`, `"print"`).
+
+#### `options` (object) — Puppeteer PDFOptions:
+
+- `format` (string): `"Letter"`, `"Legal"`, `"Tabloid"`, `"A0"` through `"A6"`.
+- `width` / `height` (string|number): Paper dimensions (e.g., `"8.5in"`).
+- `scale` (number): 0.1 to 2.
+- `landscape` (boolean): Landscape orientation.
+- `printBackground` (boolean): Include background graphics/colors.
+- `displayHeaderFooter` (boolean): Show header and footer.
+- `headerTemplate` / `footerTemplate` (string): HTML templates. Classes: `date`, `title`, `url`, `pageNumber`, `totalPages`.
+- `pageRanges` (string): e.g., `"1-5, 8, 11-13"`.
+- `margin` (object): `top`, `bottom`, `left`, `right` (e.g., `"1cm"`).
+- `tagged` (boolean): Generate accessible PDF.
+- `outline` (boolean): Generate document outline.
+
+#### `viewport` (object): `width`, `height`, `deviceScaleFactor`, `isMobile`.
+#### `waitForSelector` (object): `selector`, `timeout`, `visible`.
+#### `waitForTimeout` (number): Wait N milliseconds before generating.
+#### `cookies` (array): Cookies to set before navigation.
+#### `authenticate` (object): `username`, `password` for HTTP auth.
+#### `gotoOptions` (object): `waitUntil`, `timeout`.
+
+### Response
+
+Binary PDF data with `Content-Type: application/pdf`.
+
+## Execution
+
+Save the output to a `.pdf` file:
+
+```bash
+[ -z "$BROWSERLESS_TOKEN" ] && [ -f ~/.browserless/.env ] && source ~/.browserless/.env
+curl -s -X POST "${BROWSERLESS_API_URL:-https://production-sfo.browserless.io}/pdf?token=$BROWSERLESS_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"url": "https://example.com", "options": {"printBackground": true, "format": "A4"}}' \\
+  -o output.pdf
+```
+
+After saving, inform the user of the file path. Use a descriptive filename if none specified.
+"""

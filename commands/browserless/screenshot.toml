@@ -1,0 +1,92 @@
+description = "Capture a screenshot of a webpage using Browserless. Supports full-page, element-specific, multiple formats, and proxy/geo-targeting."
+
+prompt = """# Screenshot
+
+Use the Browserless `/screenshot` REST API to capture a screenshot of a webpage.
+
+The user's request is: {{args}}
+
+## Authentication
+
+```bash
+[ -z "$BROWSERLESS_TOKEN" ] && [ -f ~/.browserless/.env ] && source ~/.browserless/.env
+API_URL="${BROWSERLESS_API_URL:-https://production-sfo.browserless.io}"
+```
+
+If no token is available, ask the user to run `/browserless:auth`.
+
+## How to call
+
+```
+POST ${API_URL}/screenshot?token=${BROWSERLESS_TOKEN}
+Content-Type: application/json
+```
+
+### Query parameters (appended to URL)
+
+- `blockAds` (boolean): Load ad-blocking extensions.
+- `proxy` (string): **REQUIRED when using any proxy option.** Must be set to `"residential"`. If `proxyCountry`, `proxyCity`, or `proxyState` is used, you MUST also include `proxy=residential` in the query string — otherwise the proxy settings are silently ignored.
+- `proxyCountry` (string): Two-letter country code (US, GB, FR, DE, etc.). Requires `proxy=residential`.
+- `proxyCity` (string): City for proxy routing. Requires `proxy=residential`.
+- `proxyState` (string): State/province (use underscores for whitespace). Requires `proxy=residential`.
+
+### Request body
+
+```json
+{
+  "url": "<target URL>",
+  "options": {
+    "fullPage": true,
+    "type": "png"
+  }
+}
+```
+
+#### Top-level parameters:
+
+- `url` (string): Website URL to capture. Use this OR `html`, not both.
+- `html` (string): Inline HTML content to render instead of a URL.
+- `selector` (string): CSS selector to target a specific element.
+- `scrollPage` (boolean): Scroll through the page before capturing (triggers lazy-loaded content).
+- `blockConsentModals` (boolean): Block cookie consent modals.
+
+#### `options` (object) — Puppeteer ScreenshotOptions:
+
+- `fullPage` (boolean): Capture entire scrollable page vs viewport only.
+- `type` (string): `"png"`, `"jpeg"`, or `"webp"`.
+- `quality` (number): 0–100 (jpeg/webp only).
+- `omitBackground` (boolean): Transparent screenshots.
+- `clip` (object): Region to clip — `x`, `y`, `width`, `height`.
+
+#### `viewport` (object):
+
+- `width` (number): Page width in CSS pixels.
+- `height` (number): Page height in CSS pixels.
+- `deviceScaleFactor` (number): Device scale factor (DPR).
+- `isMobile` (boolean): Whether meta viewport is considered.
+
+#### `waitForSelector` (object): `selector` (string), `timeout` (number), `visible` (boolean).
+#### `waitForFunction` (object): `fn` (string), `timeout` (number).
+#### `waitForTimeout` (number): Wait N milliseconds before capturing.
+#### `cookies` (array): Cookies to set. Each: `name`, `value`, `domain`, `path`, etc.
+#### `authenticate` (object): `username`, `password` for HTTP auth.
+#### `gotoOptions` (object): `waitUntil` (`"load"`, `"networkidle0"`, etc.), `timeout`.
+
+### Response
+
+Binary image data with appropriate Content-Type (`image/png`, `image/jpeg`, or `image/webp`).
+
+## Execution
+
+Save the output to a file with the appropriate extension:
+
+```bash
+[ -z "$BROWSERLESS_TOKEN" ] && [ -f ~/.browserless/.env ] && source ~/.browserless/.env
+curl -s -X POST "${BROWSERLESS_API_URL:-https://production-sfo.browserless.io}/screenshot?token=$BROWSERLESS_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"url": "https://example.com", "options": {"fullPage": true, "type": "png"}}' \\
+  -o screenshot.png
+```
+
+After saving, inform the user of the file path. Use a descriptive filename if none specified.
+"""

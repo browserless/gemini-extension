@@ -1,0 +1,70 @@
+description = "Discover and map all URLs on a website using Browserless. Crawls sitemaps, pages, and subdomains."
+
+prompt = """# Map
+
+Use the Browserless `/map` REST API to discover and list all URLs on a website.
+
+The user's request is: {{args}}
+
+## Authentication
+
+```bash
+[ -z "$BROWSERLESS_TOKEN" ] && [ -f ~/.browserless/.env ] && source ~/.browserless/.env
+API_URL="${BROWSERLESS_API_URL:-https://production-sfo.browserless.io}"
+```
+
+If no token is available, ask the user to run `/browserless:auth`.
+
+## How to call
+
+```
+POST ${API_URL}/map?token=${BROWSERLESS_TOKEN}
+Content-Type: application/json
+```
+
+### Request body
+
+```json
+{
+  "url": "https://example.com",
+  "limit": 100
+}
+```
+
+#### Parameters:
+
+- `url` (string, required): Base URL to discover links from.
+- `search` (string, optional): Query to rank results by relevance.
+- `limit` (number, default 5000): Max URLs to return (1–5000).
+- `timeout` (number): Request timeout in milliseconds.
+- `sitemap` (string, default `"include"`): Discovery mode — `"include"`, `"skip"`, `"only"`.
+- `includeSubdomains` (boolean, default true): Include subdomain URLs.
+- `ignoreQueryParameters` (boolean, default true): Remove query params to reduce duplicates.
+- `location` (object): Geo-targeting with `country` and `languages`.
+
+### Response
+
+```json
+{
+  "success": true,
+  "links": [
+    {
+      "url": "https://example.com/page1",
+      "title": "Page Title",
+      "description": "Page description."
+    }
+  ]
+}
+```
+
+## Execution
+
+```bash
+[ -z "$BROWSERLESS_TOKEN" ] && [ -f ~/.browserless/.env ] && source ~/.browserless/.env
+curl -s -X POST "${BROWSERLESS_API_URL:-https://production-sfo.browserless.io}/map?token=$BROWSERLESS_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"url": "https://example.com", "limit": 100}'
+```
+
+Present discovered URLs in a readable format. If the user wants specific pages, use the `search` parameter.
+"""

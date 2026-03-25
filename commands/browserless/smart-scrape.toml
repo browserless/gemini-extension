@@ -1,0 +1,70 @@
+description = "Scrape a webpage using Browserless with cascading strategies (HTTP fetch, proxy, headless browser, captcha solving)."
+
+prompt = """# Smart Scrape
+
+Use the Browserless `/smart-scrape` REST API to scrape a webpage. The API automatically tries cascading strategies: direct HTTP fetch, proxy, headless browser, and browser with captcha solving.
+
+The user's request is: {{args}}
+
+## Authentication
+
+Before making the request, resolve credentials:
+
+```bash
+[ -z "$BROWSERLESS_TOKEN" ] && [ -f ~/.browserless/.env ] && source ~/.browserless/.env
+API_URL="${BROWSERLESS_API_URL:-https://production-sfo.browserless.io}"
+```
+
+If no token is available, ask the user to run `/browserless:auth`.
+
+## How to call
+
+```
+POST ${API_URL}/smart-scrape?token=${BROWSERLESS_TOKEN}
+Content-Type: application/json
+```
+
+### Request body
+
+```json
+{
+  "url": "<target URL - required>",
+  "formats": ["markdown", "html", "screenshot", "pdf", "links"],
+  "timeout": 30000
+}
+```
+
+- `url` (required): The webpage URL to scrape.
+- `formats` (optional, default `["html"]`): Array of output formats:
+  - `"markdown"` — Best for reading/summarizing. **Default to this when the user just wants to read a page.**
+  - `"html"` — Raw HTML content.
+  - `"screenshot"` — Base64-encoded screenshot image.
+  - `"pdf"` — Base64-encoded PDF.
+  - `"links"` — Array of all links on the page.
+- `timeout` (optional): Max time in milliseconds.
+
+### Response
+
+```json
+{
+  "ok": true,
+  "statusCode": 200,
+  "content": "<html>...</html>",
+  "strategy": "http-fetch",
+  "attempted": ["http-fetch"],
+  "markdown": "# Page Title\\n...",
+  "links": ["https://example.com/page1"]
+}
+```
+
+## Execution
+
+Use `curl` via shell. Default to `["markdown"]` format unless the user asks for something specific. Present markdown content directly; save binary outputs (screenshot/pdf) to files.
+
+```bash
+[ -z "$BROWSERLESS_TOKEN" ] && [ -f ~/.browserless/.env ] && source ~/.browserless/.env
+curl -s -X POST "${BROWSERLESS_API_URL:-https://production-sfo.browserless.io}/smart-scrape?token=$BROWSERLESS_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"url": "https://example.com", "formats": ["markdown"]}'
+```
+"""
