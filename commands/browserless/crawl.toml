@@ -1,0 +1,143 @@
+description = "Crawl a website starting from a URL, following links up to a configurable depth, and scrape every discovered page."
+
+prompt = """# Crawl
+
+Use the Browserless `/crawl` REST API to crawl a website starting from a seed URL. The crawler follows links up to a configurable depth and scrapes every discovered page. Supports sitemap discovery, path filtering, subdomain handling, and custom scrape options.
+
+**Note:** The crawl API is asynchronous. A POST starts the crawl and returns a job ID. You then poll with GET to retrieve results.
+
+The user's request is: {{args}}
+
+## Authentication
+
+```bash
+[ -z "$BROWSERLESS_TOKEN" ] && [ -f ~/.browserless/.env ] && source ~/.browserless/.env
+API_URL="${BROWSERLESS_API_URL:-https://production-sfo.browserless.io}"
+```
+
+If no token is available, ask the user to run `/browserless:auth`.
+
+## Step 1: Start the crawl
+
+```
+POST ${API_URL}/crawl?token=${BROWSERLESS_TOKEN}
+Content-Type: application/json
+```
+
+### Request body
+
+```json
+{
+  "url": "https://example.com",
+  "limit": 100,
+  "maxDepth": 5,
+  "scrapeOptions": {
+    "formats": ["markdown"]
+  }
+}
+```
+
+#### Core parameters:
+
+- `url` (string, required): The starting URL to crawl.
+- `limit` (number, default 100): Maximum pages to crawl (max 10,000).
+- `maxDepth` (number, default 5): Maximum link-follow depth from the root URL (0–20).
+- `maxRetries` (number, default 1): Retry attempts per failed page (0–5).
+- `allowExternalLinks` (boolean, default false): Follow links to external domains.
+- `allowSubdomains` (boolean, default false): Follow links to subdomains.
+- `sitemap` (string, default `"auto"`): Sitemap handling — `"auto"`, `"force"`, `"skip"`.
+- `includePaths` (array): Regex patterns for URL paths to include.
+- `excludePaths` (array): Regex patterns for URL paths to exclude.
+- `delay` (number, default 200): Milliseconds between requests (0–10,000).
+
+#### `scrapeOptions` (object) — Per-page scrape settings:
+
+- `formats` (array, default `["markdown"]`): Output formats — `"markdown"`, `"html"`, `"rawText"`.
+- `onlyMainContent` (boolean, default true): Extract only the main content using Readability.
+- `includeTags` / `excludeTags` (arrays): HTML tag selectors to include/exclude.
+- `waitFor` (number, default 0): Milliseconds to wait after page load before scraping (0–30,000).
+- `headers` (object): Custom HTTP headers to send with each request.
+- `timeout` (number, default 30000): Navigation timeout in milliseconds (1,000–180,000).
+
+### Response (POST)
+
+```json
+{
+  "success": true,
+  "id": "crawl_abc123def456",
+  "url": "https://production-sfo.browserless.io/crawl/crawl_abc123def456"
+}
+```
+
+## Step 2: Poll for results
+
+```
+GET ${API_URL}/crawl/{id}?token=${BROWSERLESS_TOKEN}
+```
+
+Optional query parameter: `skip` (number) for pagination.
+
+### Response (GET)
+
+```json
+{
+  "status": "completed",
+  "total": 50,
+  "completed": 50,
+  "failed": 2,
+  "expiresAt": "2024-01-01T12:00:00Z",
+  "next": "https://.../crawl/crawl_abc123?skip=10",
+  "data": [
+    {
+      "status": "completed",
+      "contentUrl": "https://s3-presigned-url...",
+      "metadata": {
+        "title": "Page Title",
+        "description": "Page description",
+        "sourceURL": "https://example.com/page",
+        "statusCode": 200,
+        "scrapedAt": "2024-01-01T11:30:00Z"
+      }
+    }
+  ]
+}
+```
+
+## Other operations
+
+- **List all crawls:** `GET ${API_URL}/crawl?token=${BROWSERLESS_TOKEN}&limit=20&status=completed`
+- **Cancel a crawl:** `DELETE ${API_URL}/crawl/{id}?token=${BROWSERLESS_TOKEN}`
+
+## Execution
+
+### Start the crawl:
+
+```bash
+[ -z "$BROWSERLESS_TOKEN" ] && [ -f ~/.browserless/.env ] && source ~/.browserless/.env
+CRAWL_RESPONSE=$(curl -s -X POST "${BROWSERLESS_API_URL:-https://production-sfo.browserless.io}/crawl?token=$BROWSERLESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com", "limit": 50, "maxDepth": 3, "scrapeOptions": {"formats": ["markdown"]}}')
+echo "$CRAWL_RESPONSE"
+```
+
+### Poll for results (extract the crawl ID from the POST response):
+
+```bash
+CRAWL_ID=$(echo "$CRAWL_RESPONSE" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+curl -s "${BROWSERLESS_API_URL:-https://production-sfo.browserless.io}/crawl/${CRAWL_ID}?token=$BROWSERLESS_TOKEN"
+```
+
+### Fetch page content from contentUrl:
+
+```bash
+curl -s "<contentUrl from results>"
+```
+
+Tips:
+- Start with a small `limit` (10–50) for testing, increase as needed.
+- Use `includePaths`/`excludePaths` to focus on specific sections (e.g., `["/blog/.*"]`).
+- Poll every 5–10 seconds until `status` is `"completed"`.
+- Results are stored on S3 and expire after 1 hour. Complete crawl data expires after 24 hours.
+- Use `scrapeOptions.onlyMainContent: true` (default) to get clean content without navbars/footers.
+- To get all pages, follow the `next` URL for pagination.
+"""

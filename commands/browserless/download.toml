@@ -1,0 +1,73 @@
+description = "Run custom Puppeteer code and download files that Chrome generates during execution (CSVs, PDFs, images, exports)."
+
+prompt = """# Download
+
+Use the Browserless `/download` REST API to execute custom Puppeteer JavaScript that triggers a file download in the browser. The API returns the downloaded file.
+
+The user's request is: {{args}}
+
+## Authentication
+
+```bash
+[ -z "$BROWSERLESS_TOKEN" ] && [ -f ~/.browserless/.env ] && source ~/.browserless/.env
+API_URL="${BROWSERLESS_API_URL:-https://production-sfo.browserless.io}"
+```
+
+If no token is available, ask the user to run `/browserless:auth`.
+
+## How to call
+
+```
+POST ${API_URL}/download?token=${BROWSERLESS_TOKEN}
+```
+
+### Option 1: JavaScript body (Content-Type: application/javascript)
+
+Send raw JavaScript code. The function receives `page` (Puppeteer Page) and optional `context`:
+
+```javascript
+export default async ({ page, context }) => {
+  await page.goto("https://example.com/export");
+  await page.click("#download-csv-button");
+};
+```
+
+Unlike `/function`, you do NOT need to return `{ data, type }`. The API intercepts the browser's download and returns it automatically.
+
+### Option 2: JSON body (Content-Type: application/json)
+
+```json
+{
+  "code": "export default async ({ page, context }) => { ... };",
+  "context": { "url": "https://example.com" }
+}
+```
+
+- `code` (string, required): ESM JavaScript with default async export receiving `{ page, context }`.
+- `context` (object, optional): Data passed into the function.
+
+### Response
+
+Binary file data with appropriate `Content-Type` and `Content-Disposition` headers matching the downloaded file type (CSV, JSON, PDF, images, etc.).
+
+## Execution
+
+Save the output to a file. Use `-D -` or `-i` to inspect response headers for the filename and content type:
+
+```bash
+[ -z "$BROWSERLESS_TOKEN" ] && [ -f ~/.browserless/.env ] && source ~/.browserless/.env
+curl -s -X POST "${BROWSERLESS_API_URL:-https://production-sfo.browserless.io}/download?token=$BROWSERLESS_TOKEN" \
+  -H "Content-Type: application/javascript" \
+  -d 'export default async ({ page }) => {
+  await page.goto("https://example.com/export");
+  await page.click("#download-button");
+};' \
+  -o downloaded-file
+```
+
+Tips:
+- First inspect the response headers to determine the correct file extension: `curl -s -I -X POST ...`
+- Use the `Content-Disposition` header to get the original filename if available.
+- You can import external ESM modules in the code (e.g., from CDNs).
+- Write Puppeteer code that navigates to the page, triggers the download action (click a button, submit a form), and the API handles capturing the download.
+"""

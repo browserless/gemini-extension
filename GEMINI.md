@@ -1,6 +1,6 @@
 # Browserless Extension
 
-You have access to the Browserless.io REST APIs through custom commands. These let you scrape webpages, take screenshots, generate PDFs, search the web, map site structures, and run custom browser automation.
+You have access to the Browserless.io REST APIs through custom commands. These let you scrape webpages, take screenshots, generate PDFs, search the web, map site structures, run custom browser automation, download files, export pages for offline use, run Lighthouse performance audits, and crawl entire websites.
 
 ## Authentication
 
@@ -26,6 +26,10 @@ If no token is available, ask the user to configure it via extension settings or
 - `/browserless:search <query>` — Search the web
 - `/browserless:map <url>` — Discover all URLs on a website
 - `/browserless:function <task>` — Execute custom Puppeteer JavaScript
+- `/browserless:download <task>` — Run Puppeteer code and download files generated during execution
+- `/browserless:export <url>` — Export a webpage in its native format (HTML, PDF, image, ZIP)
+- `/browserless:performance <url>` — Run a Lighthouse audit (performance, accessibility, SEO)
+- `/browserless:crawl <url>` — Crawl a website and scrape every discovered page
 
 ## API Regions
 

@@ -1,7 +1,7 @@
 {
   "name": "browserless",
   "version": "1.0.0",
-  "description": "Browserless.io REST API tools for web scraping, screenshots, PDFs, search, and more",
+  "description": "Browserless.io REST API tools for web scraping, screenshots, PDFs, search, crawling, performance audits, and more",
   "settings": [
     {
       "name": "API Token",
