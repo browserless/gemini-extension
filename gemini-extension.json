@@ -1,19 +1,22 @@
 {
   "name": "browserless",
-  "version": "1.0.0",
-  "description": "Browserless.io REST API tools for web scraping, screenshots, PDFs, search, crawling, performance audits, and more",
+  "version": "2.0.0",
+  "description": "Browserless.io browser automation for Gemini — an interactive web agent plus scraping, search, crawling, export, and Lighthouse audits, via the hosted Browserless MCP server",
   "settings": [
     {
       "name": "API Token",
       "description": "Your Browserless.io API token. Get one at https://www.browserless.io",
       "envVar": "BROWSERLESS_TOKEN",
       "sensitive": true
-    },
-    {
-      "name": "API URL",
-      "description": "Browserless API base URL. Regions: SFO (default): https://production-sfo.browserless.io, LON: https://production-lon.browserless.io, AMS: https://production-ams.browserless.io",
-      "envVar": "BROWSERLESS_API_URL"
     }
   ],
+  "mcpServers": {
+    "browserless": {
+      "httpUrl": "https://mcp.browserless.io/mcp",
+      "headers": {
+        "Authorization": "Bearer ${BROWSERLESS_TOKEN}"
+      }
+    }
+  },
   "contextFileName": "GEMINI.md"
 }
