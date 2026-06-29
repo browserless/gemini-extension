@@ -1,14 +1,14 @@
 # Browserless Extension for Gemini CLI
 
-A Gemini CLI extension that gives Gemini direct access to the [Browserless.io](https://docs.browserless.io/rest-apis/intro) REST APIs: scrape webpages, take screenshots, generate PDFs, search the web, map site structures, and run custom browser automation, all from natural language.
+A Gemini CLI extension that connects Gemini to [Browserless.io](https://browserless.io) through the hosted **Browserless MCP server**. It gives Gemini an interactive web agent plus scraping, web search, crawling, site mapping, custom Puppeteer, Lighthouse audits, and export — all from natural language, with no local browser infrastructure to manage.
 
 ## Installation
 
 Clone the repo and link the extension:
 
 ```bash
-git clone https://github.com/browserless/gemini-plugin.git
-cd gemini-plugin
+git clone https://github.com/browserless/gemini-extension.git
+cd gemini-extension
 gemini extensions link .
 ```
 
@@ -18,101 +18,50 @@ gemini extensions link .
 
 Sign up for free at [browserless.io](https://www.browserless.io) and grab your API token.
 
-### 2. Authenticate
+### 2. Configure the token
 
-Run the auth command inside Gemini CLI:
-
-```
-/browserless:auth
-```
-
-This will prompt you for your token and preferred API region (SFO, LON, AMS, or a custom URL), then save the credentials to `~/.browserless/.env`.
-
-Alternatively, the extension settings will prompt for your token automatically, or you can set the environment variable directly:
+When you enable the extension, Gemini CLI prompts for the **API Token** setting and stores it as `BROWSERLESS_TOKEN`. Alternatively, set it in your shell before launching:
 
 ```bash
 export BROWSERLESS_TOKEN=your-token-here
 ```
 
-### 3. Start using commands
+The token is sent as a `Bearer` header to `https://mcp.browserless.io/mcp`. That's the whole setup — the browser tools are served over MCP and appear automatically.
 
-Once authenticated, all commands are available:
+### 3. Start using it
+
+Just ask. Gemini picks the right tool:
 
 ```
-/browserless:smart-scrape https://example.com
-/browserless:screenshot https://example.com
-/browserless:pdf https://example.com
-/browserless:search what is browserless
-/browserless:map https://example.com
-/browserless:function run ./scripts/sample-script.js
+Go to news.ycombinator.com, open the top story, and summarize the linked article.
+Take a screenshot of https://example.com.
+Find recent AI news from the last week.
+Crawl https://browserless.io and list every page.
 ```
 
-## Commands
+## Tools
 
-| Command | Description | Example Prompt |
-|---------|-------------|----------------|
-| `/browserless:auth` | Configure API token and region. Subcommands: `status`, `clear`, `region`. | |
-| `/browserless:smart-scrape` | Scrape webpages with cascading strategies (HTTP fetch, proxy, headless browser, captcha solving). Returns markdown, HTML, screenshots, PDFs, or links. | `summarize the main content of https://news.ycombinator.com` |
-| `/browserless:screenshot` | Capture screenshots of webpages. Supports full-page, element-specific, viewport sizing, image formats (PNG/JPEG/WebP), and proxy/geo-targeting. | `take a screenshot of https://inet-ip.info/ using a French proxy, wait 5 seconds before taking it` |
-| `/browserless:pdf` | Generate PDFs from webpages or HTML. Supports paper formats, margins, headers/footers, landscape, background graphics, and tagged/accessible PDFs. | `save https://en.wikipedia.org/wiki/Headless_browser as a landscape A4 PDF` |
-| `/browserless:search` | Search the web and optionally scrape result pages. Supports web, news, and image sources with time-based filtering and content categories. | `find recent AI news en español from the last week` |
-| `/browserless:map` | Discover and list all URLs on a website. Crawls sitemaps, pages, and subdomains with relevance-based search filtering. | `save a list of all URLs on https://browserless.io in json format` |
-| `/browserless:function` | Execute custom Puppeteer JavaScript in a cloud browser. Run arbitrary automation scripts, interact with page elements, fill forms, and return structured data. | `load the ./scripts/sample-script.js file and run it using /function` |
+These are exposed by the Browserless MCP server (the live set is loaded from the server at runtime):
 
-## Auth Management
-
-| Command | Description |
-|---------|-------------|
-| `/browserless:auth` | Interactive setup — set token and region |
-| `/browserless:auth status` | Check if authentication is configured |
-| `/browserless:auth clear` | Remove saved credentials |
-| `/browserless:auth region` | Change API region without re-entering token |
-
-Credentials are stored in `~/.browserless/.env` with `600` permissions. The token resolution order is:
-
-1. `BROWSERLESS_TOKEN` environment variable (from extension settings or shell)
-2. `~/.browserless/.env` file (written by `/browserless:auth`)
-
-## API Regions
-
-| Region | URL |
-|--------|-----|
-| SFO (US West, default) | `https://production-sfo.browserless.io` |
-| LON (Europe) | `https://production-lon.browserless.io` |
-| AMS (Amsterdam) | `https://production-ams.browserless.io` |
-| Custom | Any self-hosted or custom Browserless URL |
+| Tool | Description |
+|------|-------------|
+| `browserless_agent` | Interactive web agent — drives a persistent browser session through a multi-step ReAct loop (navigate, click, type, snapshot). Handles multi-tab workflows, captcha solving, residential proxies, and file upload/download. |
+| `browserless_skill` | On-demand recipes for tricky page mechanics (cookie banners, modals, shadow DOM, dynamic content). Companion to the agent. |
+| `browserless_smartscraper` | Scrape a page with cascading strategies (HTTP fetch → proxy → headless browser → captcha solving). Returns markdown, HTML, or links. |
+| `browserless_search` | Structured web, news, and image search. |
+| `browserless_crawl` | Follow links from a seed URL to a configurable depth, scraping each page. |
+| `browserless_map` | Discover every URL on a site (sitemaps, pages, subdomains). |
+| `browserless_function` | Run custom Puppeteer JavaScript in a cloud browser. |
+| `browserless_performance` | Lighthouse audit (performance, accessibility, best practices, SEO). |
+| `browserless_export` | Export a page in its native format, optionally bundling assets into a ZIP. |
 
 ## Extension Structure
 
 ```
-gemini-plugin/
-  gemini-extension.json     # Extension manifest and settings
-  GEMINI.md                 # Context instructions loaded at session start
-  commands/
-    browserless/
-      auth.toml             # Authentication setup
-      smart-scrape.toml     # Web scraping
-      screenshot.toml       # Screenshot capture
-      pdf.toml              # PDF generation
-      search.toml           # Web search
-      map.toml              # URL discovery
-      function.toml         # Custom Puppeteer code
-  scripts/
-    sample-script.js        # Example Puppeteer script
+gemini-extension/
+  gemini-extension.json     # Manifest — MCP server pointer + token setting
+  GEMINI.md                 # Context loaded at session start
 ```
-
-## API Reference
-
-Each command maps to a Browserless REST API endpoint. Full API documentation is available at [docs.browserless.io/rest-apis/intro](https://docs.browserless.io/rest-apis/intro).
-
-| Command | Endpoint |
-|---------|----------|
-| Smart Scrape | `POST /smart-scrape` |
-| Screenshot | `POST /screenshot` |
-| PDF | `POST /pdf` |
-| Search | `POST /search` |
-| Map | `POST /map` |
-| Function | `POST /function` |
 
 ## License
 

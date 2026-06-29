@@ -1,40 +1,27 @@
 # Browserless Extension
 
-You have access to the Browserless.io REST APIs through custom commands. These let you scrape webpages, take screenshots, generate PDFs, search the web, map site structures, run custom browser automation, download files, export pages for offline use, run Lighthouse performance audits, and crawl entire websites.
+This extension connects Gemini to [Browserless.io](https://browserless.io) through the hosted **Browserless MCP server** (`https://mcp.browserless.io/mcp`). The browser tools are exposed by the server and appear automatically — there is nothing to curl and no scripts to run.
 
 ## Authentication
 
-All Browserless API calls require a token. The token is available as `$BROWSERLESS_TOKEN` (configured via extension settings). The API base URL is `$BROWSERLESS_API_URL` (defaults to `https://production-sfo.browserless.io` if not set).
+The MCP server is reached with your Browserless API token, configured once via the extension setting **API Token** (`BROWSERLESS_TOKEN`). It is sent as a `Bearer` header on every request. If tools fail to load or return `401`, the token is missing or invalid — get one at [browserless.io](https://www.browserless.io).
 
-Before making any API call, resolve credentials:
+## Available tools
 
-```bash
-# Token comes from extension settings (BROWSERLESS_TOKEN env var)
-# Fall back to ~/.browserless/.env if settings aren't configured
-[ -z "$BROWSERLESS_TOKEN" ] && [ -f ~/.browserless/.env ] && source ~/.browserless/.env
-API_URL="${BROWSERLESS_API_URL:-https://production-sfo.browserless.io}"
-```
+The server exposes these tools (the exact set is loaded live from the MCP server):
 
-If no token is available, ask the user to configure it via extension settings or run `/browserless:auth`.
+- **`browserless_agent`** — the interactive web agent. Drives a persistent browser session through a multi-step ReAct loop: snapshot the page, plan, click/type/scroll, and re-snapshot. Handles multi-tab workflows, captcha solving, residential proxies, and file upload/download. Reach for this when a task needs *steps* on the web, not a single fetch.
+- **`browserless_skill`** — load an on-demand recipe for a tricky page mechanic (cookie banners, modals, shadow DOM, dynamic content). Companion to the agent; skills also auto-inject when their triggers fire.
+- **`browserless_smartscraper`** — scrape a page with cascading strategies (HTTP fetch → proxy → headless browser → captcha solving). Returns markdown, HTML, or links.
+- **`browserless_search`** — structured web, news, and image search.
+- **`browserless_crawl`** — follow links from a seed URL to a configurable depth, scraping each page.
+- **`browserless_map`** — discover every URL on a site (sitemaps, pages, subdomains).
+- **`browserless_function`** — run custom Puppeteer JavaScript in a cloud browser.
+- **`browserless_performance`** — Lighthouse audit (performance, accessibility, best practices, SEO).
+- **`browserless_export`** — export a page in its native format, optionally bundling assets into a ZIP.
 
-## Available Commands
+## Guidance
 
-- `/browserless:auth` — Configure API token and region
-- `/browserless:smart-scrape <url>` — Scrape a webpage with cascading strategies
-- `/browserless:screenshot <url>` — Capture a screenshot of a webpage
-- `/browserless:pdf <url>` — Generate a PDF from a webpage
-- `/browserless:search <query>` — Search the web
-- `/browserless:map <url>` — Discover all URLs on a website
-- `/browserless:function <task>` — Execute custom Puppeteer JavaScript
-- `/browserless:download <task>` — Run Puppeteer code and download files generated during execution
-- `/browserless:export <url>` — Export a webpage in its native format (HTML, PDF, image, ZIP)
-- `/browserless:performance <url>` — Run a Lighthouse audit (performance, accessibility, SEO)
-- `/browserless:crawl <url>` — Crawl a website and scrape every discovered page
-
-## API Regions
-
-| Region | URL |
-|--------|-----|
-| SFO (US West, default) | `https://production-sfo.browserless.io` |
-| LON (Europe) | `https://production-lon.browserless.io` |
-| AMS (Amsterdam) | `https://production-ams.browserless.io` |
+- For anything multi-step or interactive (logging in, filling forms, navigating through pages, completing a task), use **`browserless_agent`** — not one-shot scraping.
+- For "just read/summarize this page," **`browserless_smartscraper`** is cheaper and faster.
+- Pass a residential `proxy` on the agent when a target IP-blocks datacenter traffic.
